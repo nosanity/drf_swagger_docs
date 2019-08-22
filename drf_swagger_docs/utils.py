@@ -15,7 +15,7 @@ def requires_authentication(perm_classes):
     if set(perm_classes) & REQUIRE_AUTH:
         return True
     for cls in perm_classes:
-        if isinstance(cls, SwaggerBasePermission) and cls._require_authentication:
+        if issubclass(cls, SwaggerBasePermission) and cls._require_authentication:
             return True
     return False
 
@@ -69,10 +69,11 @@ def get_security_for_operation(view, method):
     security_keys = []
     for perm in perm_classes:
         definition = get_security_definition(perm)
-        if definition and permission_applies_for_method(perm, method):
+        apply = permission_applies_for_method(perm, method)
+        if definition and apply:
             security_keys.append(get_security_definition_name(perm))
-    if requires_authentication(perm_classes):
-        definition = get_auth_security_definition(auth_classes)
-        if definition:
-            security_keys.append('_auth')
-    return [{key: []} for key in security_keys]
+        if apply and requires_authentication((perm,)):
+            definition = get_auth_security_definition(auth_classes)
+            if definition:
+                security_keys.append('__auth__')
+    return [{key: []} for key in set(security_keys)]
